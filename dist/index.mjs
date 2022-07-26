@@ -7974,7 +7974,7 @@ module.exports = parent;
 /***/ 9265:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-/* unused reexport */ __nccwpck_require__(5585);
+module.exports = __nccwpck_require__(5585);
 
 
 /***/ }),
@@ -32642,13 +32642,13 @@ var nanoassert = __nccwpck_require__(9557);
  * console.log(promise instanceof Promise) // prints true
  */
 function asyncWrap_asyncWrap (fct) {
-  assert(typeof fct === 'function', 'fct must be a function')
+  nanoassert(typeof fct === 'function', 'fct must be a function')
   return async function () {
     return fct(...arguments)
   }
 }
 
-/* harmony default export */ const src_asyncWrap = ((/* unused pure expression or super */ null && (asyncWrap_asyncWrap)));
+/* harmony default export */ const src_asyncWrap = (asyncWrap_asyncWrap);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/asyncRoot.mjs
 
@@ -32704,7 +32704,7 @@ class CancelledError_CancelledError extends Error {
   }
 }
 
-/* harmony default export */ const src_CancelledError = ((/* unused pure expression or super */ null && (CancelledError_CancelledError)));
+/* harmony default export */ const src_CancelledError = (CancelledError_CancelledError);
 
 // EXTERNAL MODULE: ./node_modules/core-js-pure/features/set-immediate.js
 var set_immediate = __nccwpck_require__(9806);
@@ -32872,6 +32872,69 @@ class Delayer {
 
 /* harmony default export */ const src_Delayer = ((/* unused pure expression or super */ null && (Delayer)));
 
+;// CONCATENATED MODULE: ./node_modules/modern-async/src/Deferred.mjs
+
+/**
+ * A basic class to create a promise with its resolve and reject function in the same object.
+ *
+ * Instances of this class are never returned by any function of this library but it is used
+ * internally and can be useful to code other asynchronous helpers.
+ *
+ * @example
+ * import { Deferred, sleep } from 'modern-async'
+ *
+ * const deferred = new Deferred()
+ *
+ * sleep(10).then(() => {
+ *   deferred.resolve('test')
+ * })
+ *
+ * console.log(await deferred.promise) // will wait 10ms before printing 'test'
+ */
+class Deferred_Deferred {
+  /**
+   * Constructs a deferred object.
+   */
+  constructor () {
+    this._promise = new Promise((resolve, reject) => {
+      this._resolve = resolve
+      this._reject = reject
+    })
+  }
+
+  /**
+   * (Read-only) The promise.
+   *
+   * @member {Promise}
+   * @returns {Promise} ignored
+   */
+  get promise () {
+    return this._promise
+  }
+
+  /**
+   * (Read-only) The resolve function.
+   *
+   * @member {Function}
+   * @returns {Function} The resolve function
+   */
+  get resolve () {
+    return this._resolve
+  }
+
+  /**
+   * (Read-only) The reject function
+   *
+   * @member {Function}
+   * @returns {Function} The reject function
+   */
+  get reject () {
+    return this._reject
+  }
+}
+
+/* harmony default export */ const src_Deferred = (Deferred_Deferred);
+
 // EXTERNAL MODULE: ./node_modules/core-js-pure/features/queue-microtask.js
 var queue_microtask = __nccwpck_require__(9265);
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/queueMicrotask.mjs
@@ -32891,11 +32954,11 @@ var queue_microtask = __nccwpck_require__(9265);
  *   console.log('this resolves in a micro task')
  * })
  */
-function queueMicrotask_queueMicrotask (fct) {
-  queueMicrotask_(fct)
+function queueMicrotask (fct) {
+  queue_microtask(fct)
 }
 
-/* harmony default export */ const src_queueMicrotask = ((/* unused pure expression or super */ null && (queueMicrotask_queueMicrotask)));
+/* harmony default export */ const src_queueMicrotask = (queueMicrotask);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/Queue.mjs
 
@@ -32943,9 +33006,9 @@ class Queue_Queue {
    * `Number.POSITIVE_INFINITY`.
    */
   constructor (concurrency) {
-    assert(Number.isInteger(concurrency) || concurrency === Number.POSITIVE_INFINITY,
+    nanoassert(Number.isInteger(concurrency) || concurrency === Number.POSITIVE_INFINITY,
       'concurrency must be an integer or positive infinity')
-    assert(concurrency > 0, 'concurrency must be greater than 0')
+    nanoassert(concurrency > 0, 'concurrency must be greater than 0')
     this._concurrency = concurrency
     this._iqueue = []
     this._running = 0
@@ -33018,9 +33081,9 @@ class Queue_Queue {
    *     `false` in any other case.
    */
   execCancellable (fct, priority = 0) {
-    assert(typeof fct === 'function', 'fct must be a function')
-    assert(typeof priority === 'number', 'priority must be a number')
-    const deferred = new Deferred()
+    nanoassert(typeof fct === 'function', 'fct must be a function')
+    nanoassert(typeof priority === 'number', 'priority must be a number')
+    const deferred = new src_Deferred()
     let i = this._iqueue.length
     while (i >= 1) {
       const t = this._iqueue[i - 1]
@@ -33030,7 +33093,7 @@ class Queue_Queue {
       i -= 1
     }
     const task = {
-      asyncFct: asyncWrap(fct),
+      asyncFct: src_asyncWrap(fct),
       deferred,
       priority,
       state: 'pending'
@@ -33042,10 +33105,10 @@ class Queue_Queue {
         return false
       } else {
         const filtered = this._iqueue.filter((v) => v !== task)
-        assert(filtered.length < this._iqueue.length)
+        nanoassert(filtered.length < this._iqueue.length)
         this._iqueue = filtered
         task.state = 'cancelled'
-        deferred.reject(new CancelledError())
+        deferred.reject(new src_CancelledError())
         return true
       }
     }]
@@ -33059,7 +33122,7 @@ class Queue_Queue {
       return
     }
     this._checkQueueScheduled = true
-    queueMicrotask(() => {
+    src_queueMicrotask(() => {
       this._checkQueueScheduled = false
       this._checkQueue()
     })
@@ -33070,8 +33133,8 @@ class Queue_Queue {
    */
   _checkQueue () {
     while (true) {
-      assert(this.running >= 0, 'invalid state')
-      assert(this.running <= this.concurrency, 'invalid state')
+      nanoassert(this.running >= 0, 'invalid state')
+      nanoassert(this.running <= this.concurrency, 'invalid state')
       if (this.running === this.concurrency) {
         return
       }
@@ -33081,7 +33144,7 @@ class Queue_Queue {
       }
       this._running += 1
       task.state = 'running'
-      queueMicrotask(() => {
+      src_queueMicrotask(() => {
         task.asyncFct().finally(() => {
           this._running -= 1
           this._iqueue = this._iqueue.filter((v) => v !== task)
@@ -33102,13 +33165,13 @@ class Queue_Queue {
     const toCancel = this._iqueue.filter((task) => task.state === 'pending')
     this._iqueue = this._iqueue.filter((task) => task.state !== 'pending')
     toCancel.forEach((task) => {
-      task.deferred.reject(new CancelledError())
+      task.deferred.reject(new src_CancelledError())
     })
     return toCancel.length
   }
 }
 
-/* harmony default export */ const src_Queue = ((/* unused pure expression or super */ null && (Queue_Queue)));
+/* harmony default export */ const src_Queue = (Queue_Queue);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/getQueue.mjs
 
@@ -33121,13 +33184,13 @@ class Queue_Queue {
  */
 function getQueue_getQueue (queueOrConcurrency) {
   if (typeof queueOrConcurrency === 'number') {
-    return new Queue(queueOrConcurrency)
+    return new src_Queue(queueOrConcurrency)
   } else {
     return queueOrConcurrency
   }
 }
 
-/* harmony default export */ const src_getQueue = ((/* unused pure expression or super */ null && (getQueue_getQueue)));
+/* harmony default export */ const src_getQueue = (getQueue_getQueue);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/findInternal.mjs
 
@@ -33484,6 +33547,41 @@ async function everySeries (iterable, iteratee) {
 
 /* harmony default export */ const src_everySeries = ((/* unused pure expression or super */ null && (everySeries)));
 
+;// CONCATENATED MODULE: ./node_modules/modern-async/src/asyncIterableWrap.mjs
+
+/**
+ * Wraps an iterable or async iterable into an iterable that is guaranted to be async.
+ *
+ * @param {Iterable | AsyncIterable} iterable An iterable or async iterable object.
+ * @yields {any} The elements returned by the original iterable.
+ * @example
+ * import { asyncIterableWrap } from 'modern-async'
+ *
+ * // example sync generator
+ * function* syncGenerator() {
+ *   for (let i = 0; i < 3; i += 1) {
+ *     yield i
+ *   }
+ * }
+ *
+ * const asyncIterable = asyncIterableWrap(syncGenerator())
+ *
+ * for await (const el of asyncIterable) {
+ *   console.log(el)
+ * }
+ * // will print:
+ * // 0
+ * // 1
+ * // 2
+ */
+async function * asyncIterableWrap_asyncIterableWrap (iterable) {
+  for await (const el of iterable) {
+    yield el
+  }
+}
+
+/* harmony default export */ const src_asyncIterableWrap = (asyncIterableWrap_asyncIterableWrap);
+
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/mapGenerator.mjs
 
 
@@ -33538,10 +33636,10 @@ async function everySeries (iterable, iteratee) {
  * // Numbers from `iterator` will be consumed progressively
  */
 async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurrency = 1, ordered = true) {
-  assert(typeof iteratee === 'function', 'iteratee must be a function')
-  iteratee = asyncWrap(iteratee)
-  const it = asyncIterableWrap(iterable)
-  const queue = getQueue(queueOrConcurrency)
+  nanoassert(typeof iteratee === 'function', 'iteratee must be a function')
+  iteratee = src_asyncWrap(iteratee)
+  const it = src_asyncIterableWrap(iterable)
+  const queue = src_getQueue(queueOrConcurrency)
 
   /**
    * @ignore
@@ -33567,14 +33665,14 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
         return [identifier, 'rejected', e]
       }
     })()
-    assert(!waitList.has('identifier'), 'waitList already contains identifier')
+    nanoassert(!waitList.has('identifier'), 'waitList already contains identifier')
     waitList.set(identifier, p)
   }
   const raceWaitList = async () => {
-    assert(waitList.size >= 1, 'Can not race on empty list')
+    nanoassert(waitList.size >= 1, 'Can not race on empty list')
     const [identifier] = await Promise.race([...waitList.values()])
     const removed = waitList.delete(identifier)
-    assert(removed, 'waitList does not contain identifier')
+    nanoassert(removed, 'waitList does not contain identifier')
   }
 
   let scheduledCount = 0
@@ -33593,9 +33691,9 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
         if (task.state === 'cancelled') {
           throw new CustomCancelledError()
         }
-        assert(task.state === 'scheduled', 'invalid task state')
+        nanoassert(task.state === 'scheduled', 'invalid task state')
         const removed = scheduledList.delete(index)
-        assert(removed, 'Couldn\'t find index in scheduledList for removal')
+        nanoassert(removed, 'Couldn\'t find index in scheduledList for removal')
 
         const [state, result] = await iteratee(value, index, iterable)
           .then((r) => ['resolved', r], (e) => ['rejected', e])
@@ -33607,12 +33705,12 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
           cancelAllScheduled(ordered ? index : 0)
         }
       })
-      assert(task.cancel === null, 'task already has cancel')
+      nanoassert(task.cancel === null, 'task already has cancel')
       task.cancel = () => {
-        assert(task.state === 'scheduled', 'task should be scheduled')
+        nanoassert(task.state === 'scheduled', 'task should be scheduled')
         task.state = 'cancelled'
       }
-      assert(task.state === null, 'task should have no state')
+      nanoassert(task.state === null, 'task should have no state')
       task.state = 'scheduled'
       return p
     })
@@ -33620,10 +33718,10 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
   const cancelAllScheduled = (fromIndex) => {
     for (const index of [...scheduledList.keys()].filter((el) => el >= fromIndex)) {
       const task = scheduledList.get(index)
-      assert(task.cancel, 'task does not have cancel')
+      nanoassert(task.cancel, 'task does not have cancel')
       task.cancel()
       const removed = scheduledList.delete(index)
-      assert(removed, 'Couldn\'t find index in scheduledList for removal')
+      nanoassert(removed, 'Couldn\'t find index in scheduledList for removal')
     }
   }
   const fetch = () => {
@@ -33635,9 +33733,9 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
         const { value, done } = result
         if (!done) {
           lastIndexFetched += 1
-          assert(fetchedValue === null, 'fetchedValue should be null')
+          nanoassert(fetchedValue === null, 'fetchedValue should be null')
           fetchedValue = value
-          assert(!hasFetchedValue, 'hasFetchedValue should be false')
+          nanoassert(!hasFetchedValue, 'hasFetchedValue should be false')
           hasFetchedValue = true
         } else {
           exhausted = true
@@ -33654,8 +33752,8 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
 
   const insertInResults = (index, value, state, result) => {
     if (ordered) {
-      assert(index - lastIndexHandled - 1 >= 0, 'invalid index to insert')
-      assert(results[index - lastIndexHandled - 1] === undefined, 'already inserted result')
+      nanoassert(index - lastIndexHandled - 1 >= 0, 'invalid index to insert')
+      nanoassert(results[index - lastIndexHandled - 1] === undefined, 'already inserted result')
       results[index - lastIndexHandled - 1] = { index, value, state, result }
     } else {
       results.push({ index, value, state, result })
@@ -33688,7 +33786,7 @@ async function * mapGenerator_mapGenerator (iterable, iteratee, queueOrConcurren
   }
 }
 
-/* harmony default export */ const src_mapGenerator = ((/* unused pure expression or super */ null && (mapGenerator_mapGenerator)));
+/* harmony default export */ const src_mapGenerator = (mapGenerator_mapGenerator);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/filterGenerator.mjs
 
@@ -34198,6 +34296,40 @@ async function forEachSeries (iterable, iteratee) {
 
 /* harmony default export */ const src_forEachSeries = ((/* unused pure expression or super */ null && (forEachSeries)));
 
+;// CONCATENATED MODULE: ./node_modules/modern-async/src/toArray.mjs
+
+
+
+/**
+ * Fully consumes an iteratable or async iterable an returns an array with all the elements it contained.
+ *
+ * @param {Iterable | AsyncIterable} iterable An iterator or async iterator.
+ * @returns {Promise<any[]>} An array.
+ * @example
+ * import { toArray, sleep } from 'modern-async'
+ *
+ * // example async generator
+ * async function* asyncGenerator() {
+ *   for (let i = 0; i < 3; i += 1) {
+ *     await sleep(10)
+ *     yield i
+ *   }
+ * }
+ *
+ * console.log(await toArray(asyncGenerator()))
+ * // prints [0, 1, 2]
+ */
+async function toArray_toArray (iterable) {
+  const it = src_asyncIterableWrap(iterable)
+  const results = []
+  for await (const el of it) {
+    results.push(el)
+  }
+  return results
+}
+
+/* harmony default export */ const src_toArray = (toArray_toArray);
+
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/mapLimit.mjs
 
 
@@ -34237,10 +34369,10 @@ async function forEachSeries (iterable, iteratee) {
  * // total processing time should be ~ 20ms
  */
 async function mapLimit_mapLimit (iterable, iteratee, queueOrConcurrency) {
-  return await toArray(mapGenerator(iterable, iteratee, queueOrConcurrency))
+  return await src_toArray(src_mapGenerator(iterable, iteratee, queueOrConcurrency))
 }
 
-/* harmony default export */ const src_mapLimit = ((/* unused pure expression or super */ null && (mapLimit_mapLimit)));
+/* harmony default export */ const src_mapLimit = (mapLimit_mapLimit);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/map.mjs
 
@@ -34311,11 +34443,11 @@ async function map (iterable, iteratee) {
  * console.log(result) // prints [2, 4, 6]
  * // total processing time should be ~ 30ms
  */
-async function mapSeries_mapSeries (iterable, iteratee) {
-  return mapLimit(iterable, iteratee, 1)
+async function mapSeries (iterable, iteratee) {
+  return src_mapLimit(iterable, iteratee, 1)
 }
 
-/* harmony default export */ const src_mapSeries = ((/* unused pure expression or super */ null && (mapSeries_mapSeries)));
+/* harmony default export */ const src_mapSeries = (mapSeries);
 
 ;// CONCATENATED MODULE: ./node_modules/modern-async/src/reduce.mjs
 
@@ -35197,53 +35329,159 @@ const branches = [
 	'branch5',
 ];
 
-const gitRefToEnv = async(gitRef, token) => {
-	const found = [];
-
-	const [errE] = await to(mapSeries(envs, async (config) => {
-		const [errF, payload] = await to(secret('lever-action', config, 'GITHUB_REF_NAME', token));
+const handleFlows = async(action, flows, branch, token) => {
+	// Stop/start the flow schedules
+	const [errE] = await (0,await_to_js_umd.to)(src_mapSeries(flows, async (flow) => {
+		const [errF, payload] = await (0,await_to_js_umd.to)(toggleFlowSchedule(flow.id, action, token, flow.name));
 		if (errF) {
 			throw new Error(errF);
 		}
 
-		if (payload === gitRef) {
-			found.push(config);
-		}
 	}));
 
 	if (errE) {
 		throw new Error(errE);
 	}
 
-	if (found.length === 0) {
-		throw new Error(`Found no configured branch for ${gitRef}`);
-	}
+	if(action === 'stop') {
+		// Grab the flows again
+		const [errA, flowsToggled] = await (0,await_to_js_umd.to)(findFlows(branch, token));
+		if (errA) {
+			throw new Error(errA);
+		}
 
-	if (found.length !== 1) {
-		throw new Error(`Found more than 1 configured branch for ${gitRef}`);
-	}
+		// Stop the flow runs
+		const [errQ] = await (0,await_to_js_umd.to)(src_mapSeries(flowsToggled, async (flow) => {
+			const [errT] = await (0,await_to_js_umd.to)(src_mapSeries(flow.flow_runs, async (flowRun) => {
+				const [errH, payload] = await (0,await_to_js_umd.to)(stopFlowRun(flowRun.id, token));
+				if (errH) {
+					throw new Error(errH);
+				}
 
-	return found[0];
+			}));
+			if (errT) {
+				throw new Error(errT);
+			}
+		}));
+
+		if (errQ) {
+			throw new Error(errQ);
+		}
+	}
 }
 
-const runQuery = async(query, token) => {
+const runQuery = async(query, token, variables={}) => {
 	const config = {
 		headers: {
-			'Content-Type': 'application/json',
-			Accept: 'application/json',
-			"authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1c2VyX2lkIjoiZjIxMDFiYTUtOThlMS00YjQ5LWEzNWYtOGU5ZjUxOTMwY2UzIiwidGVuYW50X2lkIjoiN2M2NjY5OGUtZDZlYi00ODEyLTk3YmYtZTJjYzkzMWFmYTRiIiwiaWF0IjoxNjU4ODAxNDYzLCJleHAiOjE2NTg4MDIwNjMsImp0aSI6ImIyZTM1NDFhLWZkY2MtNDdlOS1iMTU3LWM3OTMxYjNjZjQwNiIsImlzcyI6IlByZWZlY3QgQ2xvdWQiLCJhdWQiOiJQcmVmZWN0IENsb3VkIEFQSSJ9.RCos-sRChtbEDZEnZfmjPCiTcieFvW4dg1n671o8kJN4OzLF9WJ_cmA1Ajqzy3DGPzBCfTxFd7Cg_0dh5IJOrsqddtV4GkTsQQxaYCqov_Lqqr9kHU-hsh-MgkzuFayYq7zCgq3xgGSEnKavafwAu8x458qUw34J1z0BlTVIK-gybTiuHEUXudtMM_Let9BMX90E6rzNOZSoxOkM8jXwc0fDtQ-Fc22ddikI5DTtxbrHThhDo_JhQkvexRgsR--B1jh09OJmP1YHtJ8HXZjbYYVg_ZNj3c9f93o5JZpd1BPUKBS9uQnfcq6Lqu_uojYlIJxZHgRNCH5CZi-MRW1keQ"
+			'content-type': 'application/json',
+			"authorization": `Bearer ${token}`,
+			'x-prefect-interactive-api': false,
 		},
-		query
+	};
+
+	const data = {
+		query,
+		variables
 	};
 
 	const url = 'https://api.prefect.io/graphql';
 
-	const [errA, response] = await (0,await_to_js_umd.to)(axios.get(url, config));
+	const [errA, response] = await (0,await_to_js_umd.to)(axios.post(url, data, config));
 	if (errA) {
 		throw new Error(errA);
 	}
-console.log(response);
-	return lodash.get(response, 'data.value.computed', '');
+	const errors = lodash.get(response, 'data.errors');
+	if(errors !== undefined) {
+		throw new Error(errors[0].message);
+	}
+
+	return lodash.get(response, 'data.data', '');
+}
+
+const findFlows = async(branch, token) => {
+	console.log(`findFlows: ${branch}`);
+
+	const query = `{
+		flow(where: { 
+			name: { 
+				_ilike: "%${branch}" 
+			} 
+			archived: {
+				_eq: false 
+			}
+		}) {
+			id
+			name
+			flow_runs(where: {
+				state: {
+					_in: [
+						"Running", "Scheduled", "Pending", "Retrying"
+					]
+				}
+			}) {
+				id
+				name
+				state
+			}
+		}
+	}`;
+
+	const [errA, data] = await (0,await_to_js_umd.to)(runQuery(query, token));
+	if (errA) {
+		throw new Error(errA);
+	}
+
+	const flows = lodash.get(data, 'flow', '');
+	console.log(`findFlows: ${branch} found ${flows.length}`);
+
+	return flows
+}
+
+const toggleFlowSchedule = async(id, action, token, name) => {
+	console.log(`toggleFlowSchedule: [${name}] ${id} ${action}`);
+
+	let direction = 'set_schedule_inactive'
+	if(action === 'start'){
+		direction = 'set_schedule_active'
+	}
+
+	const query = `mutation {
+		${direction}(input: {
+			flow_id: "${id}"
+		}) {
+			success
+		}
+	}`;
+
+	const [errA, data] = await (0,await_to_js_umd.to)(runQuery(query, token));
+	if (errA) {
+		throw new Error(errA);
+	}
+
+	console.log(`toggleFlowSchedule: [${name}] ${id} ${action} SUCCESS`);
+	return data;
+}
+
+const stopFlowRun = async(id, token) => {
+	console.log(`stopFlowRun: ${id}`);
+	const query = `mutation($input: cancel_flow_run_input!) {
+		cancel_flow_run(input:$input) {
+			state
+		}
+	}`;
+
+	const vars = {
+		"input": {
+			"flow_run_id": id
+		}
+	};
+
+	const [errA, data] = await (0,await_to_js_umd.to)(runQuery(query, token, vars));
+	if (errA) {
+		throw new Error(errA);
+	}
+	console.log(`stopFlowRun: ${id} SUCCESS`);
+	return lodash.get(data, 'flow', '');
 }
 
 const run = async() => {
@@ -35257,7 +35495,7 @@ const run = async() => {
 		throw new Error('action is not set');
 	}
 
-	if(action !== 'start' || action !== 'stop') {
+	if(action !== 'start' && action !== 'stop') {
 		throw new Error('action must be either `start` or `stop`');
 
 	}
@@ -35271,22 +35509,15 @@ const run = async() => {
 		throw new Error(`${branch} is not a valid branch`);
 	}
 
-const query = `
-{
-	flow {
-		id
-		name
-	}
-}
-`;
-
-	const [errA] = await (0,await_to_js_umd.to)(runQuery(query, prefect_account_key));
+	const [errA, flows] = await (0,await_to_js_umd.to)(findFlows(branch, prefect_account_key));
 	if (errA) {
 		throw new Error(errA);
 	}
 
-//	core.setOutput("doppler_config", doppler_config);
-//	core.exportVariable('DOPPLER_CONFIG', doppler_config);
+	const [errB] = await (0,await_to_js_umd.to)(handleFlows(action, flows, branch, prefect_account_key));
+	if (errB) {
+		throw new Error(errB);
+	}
 };
 
 try {

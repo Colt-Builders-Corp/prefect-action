@@ -16,36 +16,48 @@ const branches = [
 	'branch5',
 ];
 
-const gitRefToEnv = async(gitRef, token) => {
-	const found = [];
-
-	const [errE] = await to(mapSeries(envs, async (config) => {
-		const [errF, payload] = await to(secret('lever-action', config, 'GITHUB_REF_NAME', token));
+const handleFlows = async(action, flows, branch, token) => {
+	// Stop/start the flow schedules
+	const [errE] = await to(mapSeries(flows, async (flow) => {
+		const [errF, payload] = await to(toggleFlowSchedule(flow.id, action, token, flow.name));
 		if (errF) {
 			throw new Error(errF);
 		}
 
-		if (payload === gitRef) {
-			found.push(config);
-		}
 	}));
 
 	if (errE) {
 		throw new Error(errE);
 	}
 
-	if (found.length === 0) {
-		throw new Error(`Found no configured branch for ${gitRef}`);
-	}
+	if(action === 'stop') {
+		// Grab the flows again
+		const [errA, flowsToggled] = await to(findFlows(branch, token));
+		if (errA) {
+			throw new Error(errA);
+		}
 
-	if (found.length !== 1) {
-		throw new Error(`Found more than 1 configured branch for ${gitRef}`);
-	}
+		// Stop the flow runs
+		const [errQ] = await to(mapSeries(flowsToggled, async (flow) => {
+			const [errT] = await to(mapSeries(flow.flow_runs, async (flowRun) => {
+				const [errH, payload] = await to(stopFlowRun(flowRun.id, token));
+				if (errH) {
+					throw new Error(errH);
+				}
 
-	return found[0];
+			}));
+			if (errT) {
+				throw new Error(errT);
+			}
+		}));
+
+		if (errQ) {
+			throw new Error(errQ);
+		}
+	}
 }
 
-const runQuery = async(query, token) => {
+const runQuery = async(query, token, variables={}) => {
 	const config = {
 		headers: {
 			'content-type': 'application/json',
@@ -54,8 +66,9 @@ const runQuery = async(query, token) => {
 		},
 	};
 
-	const data =  {
-		query
+	const data = {
+		query,
+		variables
 	};
 
 	const url = 'https://api.prefect.io/graphql';
@@ -72,6 +85,92 @@ const runQuery = async(query, token) => {
 	return _.get(response, 'data.data', '');
 }
 
+const findFlows = async(branch, token) => {
+	console.log(`findFlows: ${branch}`);
+
+	const query = `{
+		flow(where: { 
+			name: { 
+				_ilike: "%${branch}" 
+			} 
+			archived: {
+				_eq: false 
+			}
+		}) {
+			id
+			name
+			flow_runs(where: {
+				state: {
+					_in: [
+						"Running", "Scheduled", "Pending", "Retrying"
+					]
+				}
+			}) {
+				id
+				name
+				state
+			}
+		}
+	}`;
+
+	const [errA, data] = await to(runQuery(query, token));
+	if (errA) {
+		throw new Error(errA);
+	}
+
+	const flows = _.get(data, 'flow', '');
+	console.log(`findFlows: ${branch} found ${flows.length}`);
+
+	return flows
+}
+
+const toggleFlowSchedule = async(id, action, token, name) => {
+	console.log(`toggleFlowSchedule: [${name}] ${id} ${action}`);
+
+	let direction = 'set_schedule_inactive'
+	if(action === 'start'){
+		direction = 'set_schedule_active'
+	}
+
+	const query = `mutation {
+		${direction}(input: {
+			flow_id: "${id}"
+		}) {
+			success
+		}
+	}`;
+
+	const [errA, data] = await to(runQuery(query, token));
+	if (errA) {
+		throw new Error(errA);
+	}
+
+	console.log(`toggleFlowSchedule: [${name}] ${id} ${action} SUCCESS`);
+	return data;
+}
+
+const stopFlowRun = async(id, token) => {
+	console.log(`stopFlowRun: ${id}`);
+	const query = `mutation($input: cancel_flow_run_input!) {
+		cancel_flow_run(input:$input) {
+			state
+		}
+	}`;
+
+	const vars = {
+		"input": {
+			"flow_run_id": id
+		}
+	};
+
+	const [errA, data] = await to(runQuery(query, token, vars));
+	if (errA) {
+		throw new Error(errA);
+	}
+	console.log(`stopFlowRun: ${id} SUCCESS`);
+	return _.get(data, 'flow', '');
+}
+
 const run = async() => {
 	const prefect_account_key = core.getInput('prefect_account_key');
 	if(!prefect_account_key) {
@@ -83,7 +182,7 @@ const run = async() => {
 		throw new Error('action is not set');
 	}
 
-	if(action !== 'start' &&  action !== 'stop') {
+	if(action !== 'start' && action !== 'stop') {
 		throw new Error('action must be either `start` or `stop`');
 
 	}
@@ -97,21 +196,15 @@ const run = async() => {
 		throw new Error(`${branch} is not a valid branch`);
 	}
 
-const query = `{
-	flow {
-		id
-		name
-	}
-}`;
-
-	const [errA, data] = await to(runQuery(query, prefect_account_key));
+	const [errA, flows] = await to(findFlows(branch, prefect_account_key));
 	if (errA) {
 		throw new Error(errA);
 	}
-console.log(data);
 
-//	core.setOutput("doppler_config", doppler_config);
-//	core.exportVariable('DOPPLER_CONFIG', doppler_config);
+	const [errB] = await to(handleFlows(action, flows, branch, prefect_account_key));
+	if (errB) {
+		throw new Error(errB);
+	}
 };
 
 try {
